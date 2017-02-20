@@ -1,5 +1,6 @@
 
 var Q = require('q')
+var config = require('./config')
 var moment = require('moment')
 var winston = require('winston');
 var request = require('request');
@@ -33,6 +34,9 @@ db.loadDatabase({},function(){
   users = db.getCollection('users')
  
 })
+
+
+var courtsName = {1: "verde", 2: "rosso", 3: "blu", 4: "nero"}
 
 /*var loki = require('lokijs')
 var db = new loki('loki.json')
@@ -72,14 +76,14 @@ var log = new(winston.Logger)({
 });
 
 
-function createBooking(date,time,userEmail){
+function createBooking(date,time,userEmail,court){
 
   var defer = Q.defer()
   
   var slot1 = getSlotFromHour(time)
   var form1 = {'date': date, 'ranges': [slot1,slot1 + 1, slot1 +2],'gameT':0,'courtsNumber':4,'circolo':'56be660ae49818d0034c9edf'}
 
-  request.post({url:'http://localhost:3000/botApi/v1/checkBeforeCreateBooking', form: form1}, function(err,httpResponse,body){ 
+  request.post({url: config.ApiserverAddress + '/botApi/v1/checkBeforeCreateBooking', form: form1}, function(err,httpResponse,body){ 
     
         log.info('createBooking..')
         if (err || JSON.parse(body).status == 400 ){
@@ -97,15 +101,24 @@ function createBooking(date,time,userEmail){
         } else{
           log.info('verify: ok....')
           var okCourt = JSON.parse(body).data[0]
+          var messageToAppend = ""
+          
+          if (court != null && JSON.parse(body).data.indexOf(court) != -1){
+            okCourt = court
+          }
+          //Ho scelto il nome di un campo ma non è disponibile...
+          else if (court != null)
+            messageToAppend = ". Scusa se ho prenotato il campo "  + courtsName[okCourt]  + " ma quello che avevi scelto non è disponibile!"
+          
           var obj = {circolo : '56be660ae49818d0034c9edf', ranges : [slot1,slot1 + 1, slot1 +2], email: userEmail, gameType :  0, payed : false, 
           court: okCourt, date :  date}
-          request.post({url:'http://localhost:3000/botApi/v1/createBooking', form: {'book':obj}}, function(err,httpResponse,body){ 
+          request.post({url: config.ApiserverAddress + '/botApi/v1/createBooking', form: {'book':obj}}, function(err,httpResponse,body){ 
             if (err){
               log.info(err)
               defer.resolve("Ops!!! Problemi durante la prenotazione.....")
             }
             else
-              defer.resolve("Great! Hai il campo: " + okCourt)
+              defer.resolve("Fatto! Giochi nel campo: " + courtsName[okCourt] + messageToAppend)
           })
         }
     })
@@ -117,7 +130,7 @@ function findMyBookings(date,time,userEmail){
   var defer = Q.defer()
   var form1 = {'date': date, 'userEmail': userEmail}
 
-  request.post({url:'http://localhost:3000/botApi/v1/findMyBookings', form: form1}, function(err,httpResponse,body){ 
+  request.post({url: config.ApiserverAddress + '/botApi/v1/findMyBookings', form: form1}, function(err,httpResponse,body){ 
     
         log.info('findMyBookings..')
         var ret = "*Ecco i tuoi impegni* \n"
@@ -198,9 +211,10 @@ function processResponse(err,response,defer,myresp,user,chatId){
           else if (response.output.action === 'prenota') {
             var date = new Date(response.context.date); date.setHours(0); date.setMinutes(0); date.setSeconds(0);date.setMilliseconds(0)
             var time = response.context.time
+            var court = response.context.court
             log.info('verify')
             bot.sendMessage(chatId, "Dammi un attimo per la verifica....;-)");
-            createBooking(date,time,user.email).then(function(message){ defer.resolve(message)}) 
+            createBooking(date,time,user.email,court).then(function(message){ defer.resolve(message)}) 
           } 
           else if (response.output.action === 'weather'){
               
@@ -333,7 +347,7 @@ function checkForFirstFreeSlot(date,time,userEmail){
       form1.ranges[1] = slot1 + 1
       form1.ranges[2] = slot1 + 2
       
-      request.post({url:'http://localhost:3000/botApi/v1/checkBeforeCreateBooking', form: form1}, function(err,httpResponse,body){ 
+      request.post({url: config.ApiserverAddress + '/botApi/v1/checkBeforeCreateBooking', form: form1}, function(err,httpResponse,body){ 
         log.info('risposta checkbefore.....')
         log.info(body)
         if (err || JSON.parse(body).status == 400 ){
