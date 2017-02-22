@@ -1,6 +1,10 @@
+var http = require('http');
+var https = require('https');
+var fs = require('fs');
+
 
 var Q = require('q')
-var config = require('./config')
+var config = require('./config.js')
 var moment = require('moment')
 var winston = require('winston');
 var request = require('request');
@@ -203,6 +207,7 @@ function processResponse(err,response,defer,myresp,user,chatId){
           if (response.output.action === 'chuck') {
             /*const API = 'https://thecatapi.com/api/images/get?format=src&type=';
             bot.sendPhoto(chatId, API + 'png', { fileName: 'kitty.jpg' });*/
+            bot.sendMessage(chatId, "Dammi un attimo e ti riporto il Chuck pensiero....;-)");
             chuck.getRandom().then(function (data) {
                 console.log(data.value.joke);
                 defer.resolve("_" + data.value.joke + "_")
@@ -328,6 +333,9 @@ bot.on(['text'], msg => {
     })
 
 })
+
+
+
 
 bot.connect();
 
