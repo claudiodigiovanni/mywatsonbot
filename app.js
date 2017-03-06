@@ -367,7 +367,7 @@ bot.on(['voice'], msg => {
             })
         })
     }).then(function(item){
-            var convertCmd = "/Applications/opus-tools-0.1.9-macos/opusdec --rate 16000 " +  msg.voice.file_id + ".oga " + msg.voice.file_id + ".wav"
+            var convertCmd = "opusdec --rate 16000 " +  msg.voice.file_id + ".oga " + msg.voice.file_id + ".wav"
             return new Promise(function(resolve, reject) {
                 require('child_process').exec(convertCmd, (err, stdout, stderr) => {
                     if (err){
@@ -389,6 +389,14 @@ bot.on(['voice'], msg => {
             return speechClient.recognize(msg.voice.file_id + ".wav", options)
     }).then((results) => {
             console.log(results)
+
+            fs.unlink(msg.voice.file_id + ".oga", function(){
+              console.log('file oga cancellato: ' + msg.voice.file_id + ".oga")
+            })
+            fs.unlink(msg.voice.file_id + ".wav", function(){
+              console.log('file wav cancellato')
+            })
+            
             const transcription = results[0];
             console.log(`Transcription: ${transcription}`);
             
