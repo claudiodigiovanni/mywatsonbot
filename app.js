@@ -54,14 +54,6 @@ db.loadDatabase({},function(){
 
 var courtsName = {1: "verde", 2: "rosso", 3: "blu", 4: "nero"}
 
-/*var loki = require('lokijs')
-var db = new loki('loki.json')
-var users = db.addCollection('users',{autoupdate:true})
-var u = {name:"xxx1",chatId:333333, response:"{}", email:'xxxx@xxx.it'}
-users.insert(u)
-db.saveDatabase()
-*/
-
 weather.setLang('it');
 weather.setUnits('metric');
 weather.setAPPID('b76dfef9065842dab1454f9c5c92e340');
@@ -237,16 +229,14 @@ function processResponse(err,response,defer,myresp,user,chatId){
               
               weather.setCity(response.context.citta);
               weather.getAllWeather(function(error,smart){
-                console.log("weather...");
-                console.log(response.context.citta);  
-                console.log(smart.main);
-                  myresp = "*Condizioni meteo di " + response.context.citta + ": " + smart.weather[0].description + "* \n"
-                  myresp += "Temperatura:" + JSON.stringify(smart.main.temp) + "\n"
-                  myresp += "Pressione:" + JSON.stringify(smart.main.pressure) + "\n"
-                  myresp += "Umidità:" + JSON.stringify(smart.main.humidity) + "\n"
-                  myresp += "Minima:" + JSON.stringify(smart.main.temp_min) + "\n"
-                  myresp += "Massima:" + JSON.stringify(smart.main.temp_max) + "\n"
-                  defer.resolve(myresp)
+              console.log("weather...");
+              myresp = "*Condizioni meteo di " + response.context.citta + ": " + smart.weather[0].description + "* \n"
+              myresp += "Temperatura:" + JSON.stringify(smart.main.temp) + "\n"
+              myresp += "Pressione:" + JSON.stringify(smart.main.pressure) + "\n"
+              myresp += "Umidità:" + JSON.stringify(smart.main.humidity) + "\n"
+              myresp += "Minima:" + JSON.stringify(smart.main.temp_min) + "\n"
+              myresp += "Massima:" + JSON.stringify(smart.main.temp_max) + "\n"
+              defer.resolve(myresp)
                 
             });
           }
@@ -312,7 +302,7 @@ bot.on(['/start'], msg => {
   log.info(ar)
   if (ar[2] == hashcode){
       var email = ar[0]
-      var u = {name:ar[1],chatId:msg.from.id, response:"{}", email:ar[0]}
+      var u = {name:ar[1],chatId:msg.from.id, response:"{}", email:ar[0], vocalMsgCount: 0}
       users.insert(u)
       //non importa: posso dare il messaggio anche se il save è asincrono....
       bot.sendMessage(msg.from.id, 'Benvenuto ' + ar[1] + "!");
@@ -353,6 +343,19 @@ bot.on(['voice'], msg => {
     var chatId = msg.from.id
 
     var myuser = users.findOne({'chatId':chatId })
+
+    var day = (new Date()).getDate()
+
+    if (day == 1){
+       myuser.vocalMsgCount = 0
+       db.saveDatabase()
+    }
+    else if (parseInt(myuser.vocalMsgCount > 30)){
+      return bot.sendMessage(chatId, "Troppi messaggi vocali....");
+    }
+
+     myuser.vocalMsgCount = parseInt( myuser.vocalMsgCount) + 1
+     db.saveDatabase()
     
     var _mybot = bot
     bot.sendAction(chatId ,'typing' )
@@ -492,46 +495,6 @@ function getHourMinuteFromSlot(r){
     
 log.info("BOT ready!");
 
-
-
-/*
-// Imports the Google Cloud client library
-const Speech = require('@google-cloud/speech');
-
-// Your Google Cloud Platform project ID
-const projectId = 'mybookingwithwatson';
-
-// Instantiates a client
-const speechClient = Speech({
-  projectId: projectId
-});
-
-// The name of the audio file to transcribe
-const fileName = './fileok.wav';
-
-// The audio file's encoding and sample rate
-const options = {
-   encoding: 'LINEAR16',
-  sampleRate: 16000,
-  languageCode: 'it-IT'
-};
-
-// Detects speech in the audio file
-speechClient.recognize(fileName, options)
-  .then((results) => {
-      console.log(results)
-    const transcription = results[0];
-    console.log(`Transcription: ${transcription}`);
-  });
-
-
-  //     /Applications/opus-tools-0.1.9-macos/opusdec --rate 16000 file_4.oga fileok.wav
-  //     /Applications/sox-14.4.2/play fileok.wav 
-*/
-
-
-
-/*eslint-env node*/
 
 //------------------------------------------------------------------------------
 // node.js starter application for Bluemix
