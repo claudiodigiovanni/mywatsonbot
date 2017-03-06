@@ -18,8 +18,20 @@ var alchemy = new AlchemyAPI('99383e974c425463b6d6d4a5d6308afabbb32f89');
 
 
 const TeleBot = require('telebot');
-const bot = new TeleBot('206517901:AAHl1xImPUQZI-HOulXqHt3a1PStaPEslT8');
+var bot = new TeleBot('206517901:AAHl1xImPUQZI-HOulXqHt3a1PStaPEslT8');
 
+
+
+// Imports the Google Cloud client library
+const Speech = require('@google-cloud/speech');
+
+// Your Google Cloud Platform project ID
+const projectId = 'myapiai-159818';
+
+// Instantiates a client
+const speechClient = Speech({
+  projectId: projectId
+});
 
 
 /*var mongoose = require('mongoose');
@@ -225,7 +237,7 @@ function processResponse(err,response,defer,myresp,user,chatId){
               
               weather.setCity(response.context.citta);
               weather.getAllWeather(function(error,smart){
-                console.log("weather");
+                console.log("weather...");
                 console.log(response.context.citta);  
                 console.log(smart.main);
                   myresp = "*Condizioni meteo di " + response.context.citta + ": " + smart.weather[0].description + "* \n"
@@ -241,7 +253,7 @@ function processResponse(err,response,defer,myresp,user,chatId){
           else if (response.output.action === 'impegni') {
             var date = new Date(); date.setHours(0); date.setMinutes(0); date.setSeconds(0);date.setMilliseconds(0)
             log.info('impegni')
-            bot.sendMessage(chatId, "Dammi un attimo per favore....;-)");
+            bot.sendMessage(chatId, "Dammi un attimo please....;-)");
             findMyBookings(date,time,user.email).then(function(message){ defer.resolve(message)}) 
           } 
           else if (response.output.action === 'trova') {
@@ -336,6 +348,62 @@ bot.on(['text'], msg => {
 
 
 
+bot.on(['voice'], msg => {
+
+    var chatId = msg.from.id
+
+    var myuser = users.findOne({'chatId':chatId })
+    
+    var _mybot = bot
+    bot.sendAction(chatId ,'typing' )
+    bot.getFile(msg.voice.file_id)
+    .then(function(item){
+        console.log(item)
+        return new Promise(function(resolve, reject) {
+            var file = fs.createWriteStream(msg.voice.file_id + ".oga");
+            var request = https.get("https://api.telegram.org/file/bot" + token + "/" + item.file_path, function(response) {
+                response.pipe(file);
+                return resolve("...");      
+            })
+        })
+    }).then(function(item){
+            var convertCmd = "/Applications/opus-tools-0.1.9-macos/opusdec --rate 16000 " +  msg.voice.file_id + ".oga " + msg.voice.file_id + ".wav"
+            return new Promise(function(resolve, reject) {
+                require('child_process').exec(convertCmd, (err, stdout, stderr) => {
+                    if (err){
+                        console.log(err)
+                        return reject("reject")
+                    }
+                    return resolve("...");            
+                })
+            })
+    }).then(function(item){
+            // The audio file's encoding and sample rate
+            const options = {
+                encoding: 'LINEAR16',
+                sampleRate: 16000,
+                languageCode: 'it-IT'
+            };
+            // Detects speech in the audio file
+            console.log("going to speech recognition from watson........")
+            return speechClient.recognize(msg.voice.file_id + ".wav", options)
+    }).then((results) => {
+            console.log(results)
+            const transcription = results[0];
+            console.log(`Transcription: ${transcription}`);
+            
+            sendMessageToWatsonAndProcessIt(transcription,chatId  ,myuser).then(function(answer){
+              console.log('response from watson...' + answer)
+              var parse = "Markdown"
+               _mybot.sendMessage(chatId  , answer, {parse});
+            })
+
+    }).catch((error) => {
+                console.log(error)
+    });
+})
+
+
 
 bot.connect();
 
@@ -415,6 +483,43 @@ function getHourMinuteFromSlot(r){
 
     
 log.info("BOT ready!");
+
+
+
+/*
+// Imports the Google Cloud client library
+const Speech = require('@google-cloud/speech');
+
+// Your Google Cloud Platform project ID
+const projectId = 'mybookingwithwatson';
+
+// Instantiates a client
+const speechClient = Speech({
+  projectId: projectId
+});
+
+// The name of the audio file to transcribe
+const fileName = './fileok.wav';
+
+// The audio file's encoding and sample rate
+const options = {
+   encoding: 'LINEAR16',
+  sampleRate: 16000,
+  languageCode: 'it-IT'
+};
+
+// Detects speech in the audio file
+speechClient.recognize(fileName, options)
+  .then((results) => {
+      console.log(results)
+    const transcription = results[0];
+    console.log(`Transcription: ${transcription}`);
+  });
+
+
+  //     /Applications/opus-tools-0.1.9-macos/opusdec --rate 16000 file_4.oga fileok.wav
+  //     /Applications/sox-14.4.2/play fileok.wav 
+*/
 
 
 
