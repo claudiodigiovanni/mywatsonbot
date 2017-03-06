@@ -346,7 +346,7 @@ bot.on(['voice'], msg => {
 
     var day = (new Date()).getDate()
 
-    if (day == 1){
+   /* if (day == 1){
        myuser.vocalMsgCount = 0
        db.saveDatabase()
     }
@@ -355,7 +355,7 @@ bot.on(['voice'], msg => {
     }
 
      myuser.vocalMsgCount = parseInt( myuser.vocalMsgCount) + 1
-     db.saveDatabase()
+     db.saveDatabase()*/
     
     var _mybot = bot
     bot.sendAction(chatId ,'typing' )
