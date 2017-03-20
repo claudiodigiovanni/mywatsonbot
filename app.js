@@ -411,6 +411,8 @@ bot.on(['voice'], msg => {
 
     }).catch((error) => {
                 console.log(error)
+                 var parse = "Markdown"
+               _mybot.sendMessage(chatId  , "Ooops! Scusami ma non ho capito...puoi ripetere?", {parse});
     });
 })
 
